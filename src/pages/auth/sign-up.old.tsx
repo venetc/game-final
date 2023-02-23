@@ -8,7 +8,6 @@ import type {
   ChangeEvent,
   FormEvent,
 } from "react";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { clsx } from "clsx";
 
 import { api } from "../../utils/api";
@@ -61,10 +60,10 @@ const Home: NextPage = () => {
         <meta name="description" content="Registration" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-neutral">
+      <main className="bg-neutral flex min-h-screen flex-col items-center justify-center">
         <form
           onSubmit={(e) => void submit(e)}
-          className="container rounded-box m-auto flex max-w-xs flex-col items-center justify-center gap-5 border border-base-content/5 bg-base-100 p-5 py-7 shadow"
+          className="rounded-box border-base-content/5 bg-base-100 container m-auto flex max-w-xs flex-col items-center justify-center gap-5 border p-5 py-7 shadow"
         >
           {String(passwordIsConfirmed)}
           <label htmlFor="email" className="w-full">
@@ -180,8 +179,10 @@ const MemoPasswordField = memo(PasswordField);
 
 type DynamicIconProps = { isVisible: boolean } & SVGProps<SVGSVGElement>;
 
-const DynamicIcon: FC<DynamicIconProps> = ({ isVisible, ...rest }) =>
-  isVisible ? <EyeSlashIcon {...rest} /> : <EyeIcon {...rest} />;
+const DynamicIcon: FC<DynamicIconProps> = ({ isVisible, ...rest }) => (
+  // isVisible ? <EyeSlashIcon {...rest} /> : <EyeIcon {...rest} />
+  <div>asd</div>
+);
 const MemoDynamicIcon = memo(DynamicIcon);
 
 export default Home;

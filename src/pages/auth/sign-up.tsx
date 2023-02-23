@@ -5,9 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { clsx } from "clsx";
 import { api } from "../../utils/api";
 import { useCallback } from "react";
-import type { ILogin } from "../../utils/validators";
-import { loginSchema } from "../../utils/validators";
+import { loginSchema, type ILogin } from "../../utils/validators";
 import { signIn } from "next-auth/react";
+import { Button } from "@client/shared/ui/button";
+import { Input } from "@client/shared/ui/input";
 
 const SignUp: NextPage = () => {
   const {
@@ -22,12 +23,12 @@ const SignUp: NextPage = () => {
     },
   });
 
-  const { mutateAsync } = api.auth.signup.useMutation();
+  const { mutateAsync: registerUser } = api.auth.signup.useMutation();
 
   const onSubmit = useCallback(
     async (data: ILogin) => {
       try {
-        const result = await mutateAsync(data);
+        const result = await registerUser(data);
         if (result.status === 201) {
           await signIn("credentials", {
             callbackUrl: "/account",
@@ -39,7 +40,7 @@ const SignUp: NextPage = () => {
         console.error(err);
       }
     },
-    [mutateAsync]
+    [registerUser]
   );
 
   return (
@@ -61,7 +62,7 @@ const SignUp: NextPage = () => {
         >
           <h1
             className={clsx(
-              "mb-3 text-center font-nunito text-2xl font-semibold text-navy-700"
+              "text-center font-nunito text-2xl font-semibold text-navy-700"
             )}
           >
             Sign Up
@@ -77,16 +78,12 @@ const SignUp: NextPage = () => {
                 >
                   Email
                 </label>
-                <input
+                <Input
                   id="email"
                   type="email"
                   autoComplete="on"
                   {...field}
                   className={clsx(
-                    "block w-full rounded-md",
-                    "text-sm text-navy-900 placeholder:text-gray-500",
-                    "border focus-visible:border-transparent",
-                    "border-opacity-50 focus:outline-none focus-visible:border-opacity-75 focus-visible:ring-2 focus-visible:ring-opacity-75",
                     errors.email && errors.email.message
                       ? "border-red-500 focus:border-red-400 focus-visible:ring-red-400"
                       : "border-navy-900 focus:border-navy-400 focus-visible:ring-navy-400"
@@ -112,16 +109,12 @@ const SignUp: NextPage = () => {
                 >
                   Password
                 </label>
-                <input
+                <Input
                   id="password"
                   type="password"
                   autoComplete="on"
                   {...field}
                   className={clsx(
-                    "block w-full rounded-md",
-                    "text-sm text-navy-900 placeholder:text-gray-500",
-                    "border focus-visible:border-transparent",
-                    "border-opacity-50 focus:outline-none focus-visible:border-opacity-75 focus-visible:ring-2 focus-visible:ring-opacity-75",
                     errors.email && errors.email.message
                       ? "border-red-500 focus:border-red-400 focus-visible:ring-red-400"
                       : "border-navy-900 focus:border-navy-400 focus-visible:ring-navy-400"
@@ -135,18 +128,9 @@ const SignUp: NextPage = () => {
               </fieldset>
             )}
           />
-
-          <button
-            className={clsx(
-              "mt-5 block h-10",
-              "text-navy-100",
-              "rounded-lg",
-              "bg-navy-600 transition-colors hover:bg-navy-500"
-            )}
-            type="submit"
-          >
+          <Button className="mt-3" type="submit">
             Sign Up
-          </button>
+          </Button>
         </form>
       </div>
     </>

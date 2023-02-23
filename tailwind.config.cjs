@@ -38,10 +38,5 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require("tailwindcss-radix")(),
-    require("@tailwindcss/forms"),
-    require("tailwindcss-animate"),
-  ],
+  plugins: [require("@tailwindcss/forms"), require("tailwindcss-animate")],
 };
