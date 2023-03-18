@@ -9,7 +9,6 @@ export const getServerSideProps = requireAuth(async (ctx) => {
 
 const Home: NextPage = () => {
   const { data } = useSession();
-  //   console.log(data);
 
   return (
     <>
@@ -21,10 +20,7 @@ const Home: NextPage = () => {
       <>
         <div>Secret page</div>
         <pre>
-          <code>{JSON.stringify(data, null, 2)}</code>
-          <code>
-            {data && data.expires && new Date(data.expires).toString()}
-          </code>
+          <code>{data && JSON.stringify(data, null, 2)}</code>
         </pre>
       </>
     </>

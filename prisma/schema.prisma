@@ -8,18 +8,27 @@ datasource db {
 }
 
 model User {
-    id       String   @id @unique @default(uuid())
-    email    String   @unique
-    password String
-    name     String?  @db.VarChar(255)
-    role     RoleEnum @default(contentManager)
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    id             Int      @id @unique @default(autoincrement())
+    name           String?  @unique
+    email          String   @unique
+    password       String
+    role           Role     @relation(fields: [roleId], references: [id])
+    roleId         Int
+    createdAt      DateTime @default(now())
+    emailConfirmed Boolean  @default(false)
+    isApproved     Boolean  @default(false)
 }
 
-enum RoleEnum {
-    admin
-    contentManager
-    gameMaster
+model Role {
+    id          Int          @id @unique @default(autoincrement())
+    name        String       @unique
+    permissions Permission[]
+    users       User[]
+    description String?
+}
+
+model Permission {
+    id          Int     @id @unique @default(autoincrement())
+    roles       Role[]
+    description String?
 }

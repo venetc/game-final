@@ -6,6 +6,14 @@ import { z } from "zod";
  */
 export const serverSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]),
+  SMTP_PASSWORD: z.string().length(16),
+  SMTP_HOST: z.string().min(1),
+  SMTP_PORT: z.string().min(3),
+  SMTP_USERNAME: z.string().email(),
+  MASTER_ACCOUNT_EMAIL: z.string().email(),
+  MASTER_ACCOUNT_PASSWORD: z.string().min(1),
+  MASTER_ACCOUNT_NAME: z.string().min(1),
+  NEXTAUTH_SECRET: z.string().min(1),
 });
 
 /**
@@ -15,6 +23,14 @@ export const serverSchema = z.object({
  */
 export const serverEnv = {
   NODE_ENV: process.env.NODE_ENV,
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_USERNAME: process.env.SMTP_USERNAME,
+  MASTER_ACCOUNT_EMAIL: process.env.MASTER_ACCOUNT_EMAIL,
+  MASTER_ACCOUNT_PASSWORD: process.env.MASTER_ACCOUNT_PASSWORD,
+  MASTER_ACCOUNT_NAME: process.env.MASTER_ACCOUNT_NAME,
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
 };
 
 /**

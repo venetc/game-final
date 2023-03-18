@@ -1,12 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { hash } from "argon2";
-import { loginSchema } from "../../../utils/validators";
+import { IUserCreateSchema } from "../../../utils/validators";
 
 import { createTRPCRouter, publicProcedure } from "../trpc";
 
 export const authRouter = createTRPCRouter({
-  signup: publicProcedure
-    .input(loginSchema)
+  /* signup: publicProcedure
+    .input(IUserCreateSchema)
     .mutation(async ({ input, ctx }) => {
       const { email, password } = input;
 
@@ -17,16 +17,14 @@ export const authRouter = createTRPCRouter({
       if (exists) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "User already exists.",
+          message: "Пользователь с таким email уже существует",
         });
       }
 
       const hashedPassword = await hash(password, { type: 1 });
 
-      console.log(hashedPassword);
-
       const result = await ctx.prisma.user.create({
-        data: { email, password: hashedPassword },
+        data: { email, password: hashedPassword, roleId: "" },
       });
 
       return {
@@ -34,5 +32,5 @@ export const authRouter = createTRPCRouter({
         message: "Account created successfully",
         result: result.email,
       };
-    }),
+    }) */
 });

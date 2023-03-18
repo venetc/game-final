@@ -1,8 +1,38 @@
 import * as z from "zod";
 
-export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(4).max(12),
+export const userCreateSchema = z.object({
+  email: z
+    .string()
+    .describe("User email")
+    .trim()
+    .min(1, { message: "Поле не должно быть пустым" })
+    .email({ message: "Проверьте правильность email" }),
+  password: z
+    .string()
+    .describe("User password")
+    .trim()
+    .min(4, { message: "Минимум 4 символа" })
+    .max(24, { message: "Максимум 24 символа" }),
+  roleId: z
+    .number({ required_error: "Выберите роль" })
+    .describe("Desired role id")
+    .int(),
 });
 
-export type ILogin = z.infer<typeof loginSchema>;
+export const userSighInSchema = z.object({
+  email: z
+    .string()
+    .describe("User email")
+    .trim()
+    .min(1, { message: "Поле не должно быть пустым" })
+    .email({ message: "Проверьте правильность email" }),
+  password: z
+    .string()
+    .describe("User password")
+    .trim()
+    .min(4, { message: "Минимум 4 символа" })
+    .max(24, { message: "Максимум 24 символа" }),
+});
+
+export type IUserCreateSchema = z.infer<typeof userCreateSchema>;
+export type IUserSighInSchema = z.infer<typeof userSighInSchema>;

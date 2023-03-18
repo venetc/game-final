@@ -7,35 +7,35 @@ import {
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./db";
 import Credentials from "next-auth/providers/credentials";
-import { loginSchema } from "../utils/validators";
+import { env } from "../env/server.mjs";
+import { type Role } from "@prisma/client";
+import { userSighInSchema } from "src/utils/validators";
 import { verify } from "argon2";
-import type { RoleEnum } from "@prisma/client";
+
+import { sendAccountConfirm } from "../email/sendAccountConfirm";
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
-      id: string;
-      role: RoleEnum;
+      id: number;
+      role: Role;
     } & DefaultSession["user"];
   }
 
   interface User {
-    role: RoleEnum;
+    id: number;
+    role: Role;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    role: RoleEnum;
+    id: number;
+    role: Role;
   }
 }
 
 export const authOptions: NextAuthOptions = {
-  session: {
-    strategy: "jwt",
-    /* maxAge: 15 * 24 * 30 * 60, */ // 15 days
-    maxAge: 2 * 60, // 15 days
-  },
   secret: "super-secret",
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -50,16 +50,17 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
-        // console.log("credentials", credentials);
-
         try {
-          const { email, password } = await loginSchema.parseAsync(credentials);
+          const { email, password } = await userSighInSchema.parseAsync(
+            credentials
+          );
 
           const result = await prisma.user.findFirst({
             where: { email },
+            include: { role: true },
           });
 
-          if (!result) return null;
+          if (!result || !result.password) return null;
 
           const isValidPassword = await verify(result.password, password, {
             type: 1,
@@ -70,6 +71,7 @@ export const authOptions: NextAuthOptions = {
           return Promise.resolve({
             id: result.id,
             email: result.email,
+            name: result.name,
             role: result.role,
           });
         } catch {
@@ -78,23 +80,48 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // in secons (30d)
+    updateAge: 24 * 60 * 60, // in seconds (24h)
+  },
   callbacks: {
-    jwt: async ({ token, user }) => {
+    signIn: /* async */ (params) => {
+      // console.log("signIn params", params);
+      /*  console.log("signIn callback", {
+        user,
+        account,
+        profile,
+        email,
+        credentials,
+      }); */
+
+      /* await sendPasswordResetEmail({
+        language: "ru",
+        user: {
+          name: "You",
+          email: "markedone1992@gmail.com",
+        },
+        resetLink: "https://google.com/?q='hello'",
+      }); */
+
+      return true;
+    },
+    jwt: async (params) => {
+      const { token, user } = params;
+      // console.log("jwt params", params);
       if (user) {
-        token.email = user.email;
         token.role = user.role;
+        token.id = typeof user.id === "number" ? user.id : Number(user.id);
       }
 
       return Promise.resolve(token);
     },
-    session: async ({ session, token }) => {
-      if (token) {
-        session.user.email = token.email;
-        session.user.role = token.role;
-      }
+    session: async (params) => {
+      const { token, session } = params;
 
-      // console.log("session", session);
-      // console.log("token", token);
+      session.user.role = token.role;
+      session.user.id = token.id;
 
       return Promise.resolve(session);
     },

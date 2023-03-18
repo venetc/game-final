@@ -8,7 +8,7 @@
 
 /** @type {import("next").NextConfig} */
 const config = {
-  reactStrictMode: true,
+  reactStrictMode: false,
 
   /**
    * If you have the "experimental: { appDir: true }" setting enabled, then you
@@ -17,8 +17,8 @@ const config = {
    * @see https://github.com/vercel/next.js/issues/41980
    */
   i18n: {
-    locales: ["en"],
-    defaultLocale: "en",
+    locales: ["ru-RU"],
+    defaultLocale: "ru-RU",
   },
 };
 export default config;

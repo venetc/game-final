@@ -1,6 +1,8 @@
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import { type Session } from "next-auth";
-
+import { initTRPC, TRPCError } from "@trpc/server";
+import superjson from "superjson";
+import type { TRPCPanelMeta } from "trpc-panel";
 import { getServerAuthSession } from "../auth";
 import { prisma } from "../db";
 
@@ -25,15 +27,13 @@ export const createTRPCContext = async (ctx: CreateNextContextOptions) => {
   });
 };
 
-import { initTRPC, TRPCError } from "@trpc/server";
-import superjson from "superjson";
-
-const t = initTRPC.context<typeof createTRPCContext>().create({
-  transformer: superjson,
-  errorFormatter({ shape }) {
-    return shape;
-  },
-});
+const t = initTRPC
+  .context<typeof createTRPCContext>()
+  .meta<TRPCPanelMeta>()
+  .create({
+    transformer: superjson,
+    errorFormatter: ({ shape }) => shape,
+  });
 
 export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;

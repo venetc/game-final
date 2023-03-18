@@ -1,4 +1,5 @@
 import type { NextPage } from "next";
+import { signOut } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
 
@@ -18,6 +19,9 @@ const Home: NextPage = () => {
           </li>
           <li>
             <Link href="/auth/sign-in">Sign In</Link>
+          </li>
+          <li>
+            <div onClick={() => signOut()}>Sign Out</div>
           </li>
         </ul>
       </>
