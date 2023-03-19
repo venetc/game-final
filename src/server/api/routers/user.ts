@@ -51,25 +51,27 @@ export const userRouter = createTRPCRouter({
 
       const hashedPassword = await hash(password, { type: 1 });
 
-      const result = await ctx.prisma.user.create({
+      const user = await ctx.prisma.user.create({
         data: { password: hashedPassword, roleId, email },
       });
+
+      const token = Buffer.from(user.email, "utf8").toString("base64url");
 
       await sendAccountConfirm({
         language: "ru",
         user: {
-          name: result.name,
-          email: result.email,
+          name: user.name,
+          email: user.email,
           roleName: desiredRole.name,
         },
-        confirmLink: "https://google.com/?q='hello'",
+        confirmLink: `http://localhost:3000/auth/verification?token=${token}`,
       });
 
       return {
         status: 201,
         message:
           "Аккаунт успешно создан! Подтвердите email, перейдя по ссылке из письма",
-        result: result.email,
+        result: user.email,
       };
     }),
 });
