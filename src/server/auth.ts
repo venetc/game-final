@@ -7,24 +7,27 @@ import {
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./db";
 import Credentials from "next-auth/providers/credentials";
-import { env } from "../env/server.mjs";
-import { type Role } from "@prisma/client";
+import type { User as PrismaUser, Role } from "@prisma/client";
 import { userSighInSchema } from "src/utils/validators";
 import { verify } from "argon2";
 
-import { sendAccountConfirm } from "../email/sendAccountConfirm";
+import { z } from "zod";
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: number;
       role: Role;
-    } & DefaultSession["user"];
+    } & DefaultSession["user"] &
+      Pick<PrismaUser, "createdAt" | "emailConfirmed" | "isApproved">;
   }
 
   interface User {
     id: number;
     role: Role;
+    createdAt: Date;
+    emailConfirmed: boolean;
+    isApproved: boolean;
   }
 }
 
@@ -32,6 +35,9 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: number;
     role: Role;
+    createdAt: Date;
+    emailConfirmed: boolean;
+    isApproved: boolean;
   }
 }
 
@@ -60,22 +66,30 @@ export const authOptions: NextAuthOptions = {
             include: { role: true },
           });
 
-          if (!result || !result.password) return null;
+          if (!result) throw new Error("Неверный email или пароль!");
 
           const isValidPassword = await verify(result.password, password, {
             type: 1,
           });
 
-          if (!isValidPassword) return null;
+          if (!isValidPassword) throw new Error("Неверный email или пароль!");
 
           return Promise.resolve({
             id: result.id,
             email: result.email,
             name: result.name,
             role: result.role,
+            createdAt: result.createdAt,
+            isApproved: result.isApproved,
+            emailConfirmed: result.emailConfirmed,
           });
-        } catch {
-          return null;
+        } catch (e) {
+          if (e instanceof Error && e.message) {
+            throw new Error(e.message);
+          } else if (e instanceof z.ZodError) {
+            throw new Error("Неверный email или пароль!");
+          }
+          throw new Error("Непредвиденная ошибка");
         }
       },
     }),
@@ -86,7 +100,7 @@ export const authOptions: NextAuthOptions = {
     updateAge: 24 * 60 * 60, // in seconds (24h)
   },
   callbacks: {
-    signIn: /* async */ (params) => {
+    signIn: /* async */ (/* params */) => {
       // console.log("signIn params", params);
       /*  console.log("signIn callback", {
         user,
@@ -111,8 +125,12 @@ export const authOptions: NextAuthOptions = {
       const { token, user } = params;
       // console.log("jwt params", params);
       if (user) {
-        token.role = user.role;
         token.id = typeof user.id === "number" ? user.id : Number(user.id);
+        token.role = user.role;
+        token.email = user.email;
+        token.createdAt = user.createdAt;
+        token.emailConfirmed = user.emailConfirmed;
+        token.isApproved = user.isApproved;
       }
 
       return Promise.resolve(token);
@@ -120,11 +138,18 @@ export const authOptions: NextAuthOptions = {
     session: async (params) => {
       const { token, session } = params;
 
-      session.user.role = token.role;
       session.user.id = token.id;
+      session.user.role = token.role;
+      session.user.createdAt = token.createdAt;
+      session.user.isApproved = token.isApproved;
+      session.user.emailConfirmed = token.emailConfirmed;
 
       return Promise.resolve(session);
     },
+  },
+  pages: {
+    signIn: "/auth/sign-in",
+    newUser: "/auth/sign-up",
   },
 };
 
@@ -142,7 +167,7 @@ export const requireAuth =
     if (!session) {
       return {
         redirect: {
-          destination: "/", // login path
+          destination: "/auth/sign-in", // login path
           permanent: false,
         },
       };

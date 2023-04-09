@@ -7,7 +7,7 @@ type EmailUser = Pick<User, "email" | "name"> & { roleName: Role["name"] };
 export type ConfirmAccountPayload = {
   language: string;
   user: EmailUser;
-  confirmLink: string;
+  link: string;
 };
 
 export default class ConfirmAccountEmail extends BaseEmail {

@@ -1,14 +1,14 @@
 import { BaseEmailHtml } from "../fragments/BaseEmailHtml";
-import type { ConfirmAccountPayload } from "../confirm-account-email";
+import type { ChangePasswordPayload } from "../change-password-email";
 
-export const AccountConfirmEmail = ({ link, user }: ConfirmAccountPayload) => {
+export const ChangePasswordEmail = ({ link, user }: ChangePasswordPayload) => {
   return (
     <BaseEmailHtml
-      subject="Подтверждение создания аккаунта"
+      subject="Смена пароля аккаунта"
       callToAction=<a target="_blank" rel="noreferrer" href={link}>
         ССЫЛКА
       </a>
-      subtitle="Письмо для подтверждения аккаунта"
+      subtitle="Письмо для смены пароля аккаунта"
       title="Ну здарова"
     >
       <p>
@@ -16,8 +16,9 @@ export const AccountConfirmEmail = ({ link, user }: ConfirmAccountPayload) => {
       </p>
       <p style={{ fontWeight: 400, lineHeight: "24px" }}>
         <>
-          Ну короче кто-то зарегал на это мыло аккаунт в &quot;Своей игре&quot;
-          и мыло надо подтвердить.
+          Кто-то хочет поменять твой пароль в &quot;своей игре&quot;. Если это
+          не ты - тупа игнорируй это сообщение. Если затупил и сам забыл пароль
+          - тыкай по ссылке ниже.
         </>
       </p>
 

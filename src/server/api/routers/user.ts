@@ -1,7 +1,9 @@
+import { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { hash } from "argon2";
 import { sendAccountConfirm } from "src/email/sendAccountConfirm";
-import { userCreateSchema } from "src/utils/validators";
+import { Encrypter } from "src/utils/decryptor";
+import { userCreateSchema, userSighInSchema } from "src/utils/validators";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 
 export const userRouter = createTRPCRouter({
@@ -9,7 +11,7 @@ export const userRouter = createTRPCRouter({
     .input(userCreateSchema)
     .meta({ description: "Create user" })
     .mutation(async ({ input, ctx }) => {
-      const { email, password, roleId } = input;
+      const { email, password, roleId, name } = input;
 
       const existingUser = await ctx.prisma.user.findFirst({
         where: { email },
@@ -38,6 +40,19 @@ export const userRouter = createTRPCRouter({
         });
       }
 
+      if (name) {
+        const userWithSameName = await ctx.prisma.user.findFirst({
+          where: { name },
+        });
+
+        if (userWithSameName) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Пользователь с таким именем уже зарегестрирован",
+          });
+        }
+      }
+
       const desiredRole = await ctx.prisma.role.findFirst({
         where: { id: roleId },
       });
@@ -52,10 +67,15 @@ export const userRouter = createTRPCRouter({
       const hashedPassword = await hash(password, { type: 1 });
 
       const user = await ctx.prisma.user.create({
-        data: { password: hashedPassword, roleId, email },
+        data: {
+          password: hashedPassword,
+          roleId,
+          email,
+          ...(name && { name }),
+        },
       });
 
-      const token = Buffer.from(user.email, "utf8").toString("base64url");
+      const token = Encrypter.encrypt(user.email);
 
       await sendAccountConfirm({
         language: "ru",
@@ -64,7 +84,7 @@ export const userRouter = createTRPCRouter({
           email: user.email,
           roleName: desiredRole.name,
         },
-        confirmLink: `http://localhost:3000/auth/verification?token=${token}`,
+        link: `http://localhost:3000/auth/verification?token=${token}`,
       });
 
       return {

@@ -7,12 +7,12 @@ export const sendAccountConfirm = async (
 ) => {
   await new Promise((resolve, reject) => {
     try {
-      const passwordResetEmail = new ConfirmAccountEmail(confirmAccountPayload);
-      resolve(passwordResetEmail.sendEmail());
-    } catch (e) {
-      reject(
-        console.error("OrganizerPaymentRefundFailedEmail.sendEmail failed", e)
+      const confirmAccountEmail = new ConfirmAccountEmail(
+        confirmAccountPayload
       );
+      resolve(confirmAccountEmail.sendEmail());
+    } catch (e) {
+      reject(console.error("AccountConfirm.sendEmail failed", e));
     }
   });
 };

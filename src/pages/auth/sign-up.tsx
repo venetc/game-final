@@ -1,14 +1,13 @@
-import type { NextPage } from "next";
+/* eslint-disable @typescript-eslint/consistent-type-imports */
+import type { InferGetStaticPropsType, NextPage } from "next";
 import Head from "next/head";
-import { useForm, Controller, type UseFormProps } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller } from "react-hook-form";
 import { clsx } from "clsx";
 import { api } from "../../utils/api";
+import { FC, memo, SVGProps } from "react";
 import { useCallback, useState } from "react";
-// import { signIn } from "next-auth/react";
 import { Button } from "@client/shared/ui/button";
 import { Input } from "@client/shared/ui/input";
-import { type ZodType } from "zod";
 import { TRPCClientError } from "@trpc/client";
 import {
   Select,
@@ -22,46 +21,38 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@client/shared/ui/hover-card";
-
 import { type IUserCreateSchema, userCreateSchema } from "src/utils/validators";
-import { Info, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Info, Loader2 } from "lucide-react";
 import { prisma } from "src/server/db";
-import type { Permission, Role } from "@prisma/client";
 import { Separator } from "@client/shared/ui/separator";
+import superjson from "superjson";
+import { appRouter } from "src/server/api/root";
+import { createProxySSGHelpers } from "@trpc/react-query/ssg";
+import Link from "next/link";
+import { useZodForm } from "@client/shared/lib/utils";
 
 export const getStaticProps = async () => {
-  const roles = await prisma.role.findMany({
-    include: { permissions: true },
+  const ssg = createProxySSGHelpers({
+    router: appRouter,
+    ctx: { prisma: prisma, session: null },
+    transformer: superjson,
   });
 
+  const roles = await ssg.role.getAll.fetch();
+
   return {
-    props: { roles },
+    props: { trpcState: ssg.dehydrate(), roles },
   };
 };
 
-type SignUpPageProps = {
-  roles: Array<Role & { permissions: Permission[] }>;
-};
-
-const SignUp: NextPage<SignUpPageProps> = ({ roles }) => {
+const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
+  roles,
+}) => {
   const {
     mutateAsync: createUser,
     isLoading,
     isSuccess,
   } = api.user.create.useMutation();
-
-  const useZodForm = <Schema extends ZodType>(
-    props: Omit<UseFormProps<Schema["_input"]>, "resolver"> & {
-      schema: Schema;
-    }
-  ) => {
-    const form = useForm<Schema["_input"]>({
-      ...props,
-      resolver: zodResolver(props.schema),
-    });
-
-    return form;
-  };
 
   const {
     handleSubmit,
@@ -74,6 +65,7 @@ const SignUp: NextPage<SignUpPageProps> = ({ roles }) => {
       email: "",
       password: "",
       roleId: roles && roles[0]?.id,
+      name: "",
     },
   });
 
@@ -85,15 +77,7 @@ const SignUp: NextPage<SignUpPageProps> = ({ roles }) => {
     async (data: IUserCreateSchema) => {
       try {
         setApiError(null);
-        const { status } = await createUser(data);
-
-        if (status === 201) {
-          /* await signIn("credentials", {
-            callbackUrl: "/account",
-            email: data.email,
-            password: data.password,
-          }); */
-        }
+        await createUser(data);
       } catch (err) {
         err instanceof TRPCClientError
           ? setApiError({ message: err.message })
@@ -102,6 +86,10 @@ const SignUp: NextPage<SignUpPageProps> = ({ roles }) => {
     },
     [createUser]
   );
+
+  const [isPassVisisble, setIsPassVisibility] = useState(false);
+  const togglePassVisibility = () =>
+    setIsPassVisibility((prevState) => !prevState);
 
   return (
     <>
@@ -125,6 +113,38 @@ const SignUp: NextPage<SignUpPageProps> = ({ roles }) => {
             </h1>
 
             <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <fieldset className="relative">
+                  <label
+                    htmlFor="name"
+                    className="mb-1.5 block text-xs font-medium text-navy-800"
+                  >
+                    Имя
+                  </label>
+                  <Input
+                    id="name"
+                    type="text"
+                    autoComplete="on"
+                    disabled={isLoading}
+                    {...field}
+                    className={clsx(
+                      errors.name && errors.name.message
+                        ? "border-red-600 focus:border-red-400 focus-visible:ring-red-400"
+                        : "border-navy-600 focus:border-navy-400 focus-visible:ring-navy-400"
+                    )}
+                  />
+                  {errors.name && (
+                    <p className="absolute -bottom-5 text-xs text-red-500">
+                      {errors.name?.message}
+                    </p>
+                  )}
+                </fieldset>
+              )}
+            />
+
+            <Controller
               name="email"
               control={control}
               render={({ field }) => (
@@ -133,7 +153,7 @@ const SignUp: NextPage<SignUpPageProps> = ({ roles }) => {
                     htmlFor="email"
                     className="mb-1.5 block text-xs font-medium text-navy-800"
                   >
-                    Email
+                    Email *
                   </label>
                   <Input
                     id="email"
@@ -165,20 +185,34 @@ const SignUp: NextPage<SignUpPageProps> = ({ roles }) => {
                     htmlFor="password"
                     className="mb-1.5 block text-xs font-medium text-navy-800"
                   >
-                    Пароль
+                    Пароль *
                   </label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="on"
-                    disabled={isLoading}
-                    {...field}
-                    className={clsx(
-                      errors.password && errors.password.message
-                        ? "border-red-600 focus:border-red-400 focus-visible:ring-red-400"
-                        : "border-navy-600 focus:border-navy-400 focus-visible:ring-navy-400"
-                    )}
-                  />
+
+                  <div className="relative block">
+                    <Input
+                      id="password"
+                      type={isPassVisisble ? "text" : "password"}
+                      autoComplete="on"
+                      disabled={isLoading}
+                      {...field}
+                      className={clsx(
+                        "pr-12",
+                        errors.password && errors.password.message
+                          ? "border-red-600 focus:border-red-400 focus-visible:ring-red-400"
+                          : "border-navy-600 focus:border-navy-400 focus-visible:ring-navy-400"
+                      )}
+                    />
+                    <DynamicIcon
+                      isVisible={isPassVisisble}
+                      onClick={togglePassVisibility}
+                      strokeWidth={1}
+                      className={clsx(
+                        "absolute top-2/4 right-3 block h-5 -translate-y-2/4 cursor-pointer",
+                        errors.password ? "text-red-400" : "text-navy-900"
+                      )}
+                    />
+                  </div>
+
                   {errors.password && (
                     <p className="absolute -bottom-5 text-xs text-red-500">
                       {errors.password?.message}
@@ -267,17 +301,27 @@ const SignUp: NextPage<SignUpPageProps> = ({ roles }) => {
               )}
             />
 
-            <Button className="mt-3" disabled={isLoading} type="submit">
-              {isLoading ? "Создаем" : "Создать аккаунт"}
-              {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-            </Button>
+            <div className="relative mt-3 mb-3">
+              <Button className="w-full" disabled={isLoading} type="submit">
+                {isLoading ? "Создаем" : "Создать аккаунт"}
+                {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              </Button>
+              <Link
+                className="absolute top-full left-1/2 block -translate-x-1/2 translate-y-3 font-fira text-xs text-navy-900 underline hover:text-navy-700"
+                href="/auth/sign-in"
+              >
+                Уже есть аккаунт?
+              </Link>
+            </div>
 
-            <Separator />
+            <div>
+              <Separator className="mb-3" />
 
-            <p className="text-center text-sm font-normal leading-snug text-navy-600">
-              Доступ к&nbsp;сервису будет предоставлен только после
-              подтверждения одним из&nbsp;администраторов
-            </p>
+              <p className="text-center text-sm font-normal leading-snug text-navy-600">
+                Доступ к&nbsp;сервису будет предоставлен только после
+                подтверждения одним из&nbsp;администраторов
+              </p>
+            </div>
 
             {apiError && (
               <p className="absolute left-2/4 top-[calc(100%+1rem)] w-[90%] -translate-x-1/2 text-center font-fira text-sm font-normal text-red-500">
@@ -286,24 +330,36 @@ const SignUp: NextPage<SignUpPageProps> = ({ roles }) => {
             )}
           </form>
         ) : (
-          <div className="m-auto flex h-full w-full max-w-sm flex-col justify-center rounded-none bg-navy-50 px-1 py-5 shadow-lg sm:h-auto sm:rounded-md sm:px-6 sm:py-7">
-            <h1 className="mb-5 text-center font-nunito text-3xl font-semibold text-navy-900">
-              Аккаунт создан!
-            </h1>
-            <p className="mb-3 text-center font-fira font-normal leading-snug text-navy-700">
-              Подтвердите email перейдя по&nbsp;ссылке из&nbsp;письма,
-              и&nbsp;дождитесь подтверждения аккаунта одним
-              из&nbsp;администраторов.
-            </p>
-            <p className="text-center font-fira font-normal leading-snug text-navy-700">
-              Максимальный срок рассмотрения заявок&nbsp;&mdash;{" "}
-              <i className="text-navy-500">30&nbsp;дней</i>.
-            </p>
-          </div>
+          <SuccessPanel />
         )}
       </div>
     </>
   );
 };
+
+const SuccessPanel = memo(() => {
+  return (
+    <div className="m-auto flex h-full w-full max-w-sm flex-col justify-center rounded-none bg-navy-50 px-1 py-5 shadow-lg sm:h-auto sm:rounded-md sm:px-6 sm:py-7">
+      <h1 className="mb-5 text-center font-nunito text-3xl font-semibold text-navy-900">
+        Аккаунт создан!
+      </h1>
+      <p className="mb-3 text-center font-fira font-normal leading-snug text-navy-700">
+        Подтвердите email перейдя по&nbsp;ссылке из&nbsp;письма,
+        и&nbsp;дождитесь подтверждения аккаунта одним из&nbsp;администраторов.
+      </p>
+      <p className="text-center font-fira font-normal leading-snug text-navy-700">
+        Максимальный срок рассмотрения заявок&nbsp;&mdash;{" "}
+        <i className="text-navy-500">30&nbsp;дней</i>.
+      </p>
+    </div>
+  );
+});
+
+SuccessPanel.displayName = "SuccessPanel";
+
+const DynamicIcon: FC<{ isVisible: boolean } & SVGProps<SVGSVGElement>> = ({
+  isVisible,
+  ...rest
+}) => (isVisible ? <EyeOff {...rest} /> : <Eye {...rest} />);
 
 export default SignUp;

@@ -1,5 +1,5 @@
-import { Separator } from "@client/shared/ui/separator";
-import { Prisma, Role, type User } from "@prisma/client";
+import type { Role, User } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { clsx } from "clsx";
 import type {
   NextPage,
@@ -9,6 +9,7 @@ import type {
 } from "next";
 import Head from "next/head";
 import { prisma } from "src/server/db";
+import { Encrypter } from "src/utils/decryptor";
 
 type PaswordlessUser = Pick<
   User,
@@ -57,7 +58,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (
     emailConfirmed: true,
   });
 
-  const emailFromQuery = Buffer.from(tokenString, "base64url").toString("utf8");
+  const emailFromQuery = Encrypter.decrypt(tokenString);
 
   const user = await prisma.user.findFirst({
     where: { email: emailFromQuery },
@@ -68,26 +69,27 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (
     return {
       props: {
         isError: true,
-        errorMessage: `Не&nbsp;удалось найти пользователя с&nbsp;этим email. Скопируйте строку <span class="text-red-500">${tokenString}</span> и&nbsp;отправьте одному из&nbsp;разработчиков.`,
-      },
-    };
-  }
-
-  if (user && user.emailConfirmed) {
-    return {
-      props: {
-        isError: true,
-        errorMessage:
-          "Этот email уже был подтвержден. Дождитесь подтверждения аккаунта одним из&nbsp;администраторов.",
+        errorMessage: `Не&nbsp;удалось найти пользователя с&nbsp;этим email. Скопируйте красный текст и&nbsp;отправьте одному из&nbsp;разработчиков. <span class="text-red-500 mt-3 break-words block">${tokenString}</span>`,
       },
     };
   }
 
   /* TODO: Перенести патч поумнее */
-  await prisma.user.update({
-    where: { email: emailFromQuery },
-    data: { emailConfirmed: true },
-  });
+  if (!user.emailConfirmed) {
+    await prisma.user.update({
+      where: { email: emailFromQuery },
+      data: { emailConfirmed: true },
+    });
+  }
+
+  if (user.isApproved) {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
 
   return {
     props: {
@@ -126,11 +128,11 @@ const VerificationPage: NextPage<
               />
             ) : (
               <>
-                <p className="mb-3 text-center font-fira font-normal leading-snug text-navy-700">
+                <p className="text-center font-fira font-normal leading-snug text-navy-700">
                   Отлично! Осталось только дождаться подтверждения вашего
                   аккаунта одним из&nbsp;администраторов.
                 </p>
-                <div className="mb-3 border border-navy-200 text-center font-fira font-normal leading-snug text-navy-700">
+                <div className="my-6 border border-navy-200 text-center font-fira font-normal leading-snug text-navy-700">
                   {user.name && (
                     <p className="flex justify-between py-1.5 px-3 text-sm odd:bg-navy-100">
                       <span>Имя</span>

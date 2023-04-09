@@ -17,6 +17,12 @@ export const userCreateSchema = z.object({
     .number({ required_error: "Выберите роль" })
     .describe("Desired role id")
     .int(),
+  name: z
+    .string()
+    .describe("User name")
+    .trim()
+    .max(50, { message: "Максимум 50 символа" })
+    .optional(),
 });
 
 export const userSighInSchema = z.object({

@@ -1,3 +1,4 @@
+import { Button } from "@client/shared/ui/button";
 import type { NextPage } from "next";
 import { signOut } from "next-auth/react";
 import Head from "next/head";
@@ -21,7 +22,15 @@ const Home: NextPage = () => {
             <Link href="/auth/sign-in">Sign In</Link>
           </li>
           <li>
-            <div onClick={() => signOut()}>Sign Out</div>
+            <Button
+              className="m-3"
+              variant={"default"}
+              onClick={() =>
+                signOut({ redirect: true, callbackUrl: "/auth/sign-in" })
+              }
+            >
+              Sign Out
+            </Button>
           </li>
         </ul>
       </>
