@@ -26,7 +26,7 @@ export default class ChangePasswordEmail extends BaseEmail {
         this.changePasswordPayload.user.roleName
       } <${this.changePasswordPayload.user.email}>`,
       from: `${"Jeopardy!"} <${this.getMailerOptions().from}>`,
-      subject: "Подтверждение аккаунта",
+      subject: "Смена пароля",
       html: renderEmail("ChangePasswordEmail", this.changePasswordPayload),
     };
   }

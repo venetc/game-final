@@ -25,9 +25,7 @@ const Home: NextPage = () => {
             <Button
               className="m-3"
               variant={"default"}
-              onClick={() =>
-                signOut({ redirect: true, callbackUrl: "/auth/sign-in" })
-              }
+              onClick={() => signOut({ redirect: true, callbackUrl: "/auth/sign-in" })}
             >
               Sign Out
             </Button>

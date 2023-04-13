@@ -1,36 +1,37 @@
 import * as crypto from "crypto";
 
-export class Encrypter {
-  static algorithm = "aes256";
-  static key = crypto.scryptSync("<Your-Secret-Key>", "salt", 32);
+const DEFAULT_KEY = crypto.scryptSync("her", "morzha", 32);
+const DEFAULT_ALGORITHM = "aes256";
 
-  static encrypt(clearText: string) {
+export class Encrypter {
+  static encrypt(rawText: string, cryptoKey?: string) {
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(
-      Encrypter.algorithm,
-      Encrypter.key,
-      iv
-    );
-    const encrypted = cipher.update(clearText, "utf8", "hex");
-    return Buffer.from(
-      `${encrypted + cipher.final("hex")}|${Buffer.from(iv).toString("hex")}`,
-      "utf8"
-    ).toString("base64url");
+    const key = cryptoKey ? crypto.scryptSync(cryptoKey, "salt", 32) : DEFAULT_KEY;
+
+    const cipher = crypto.createCipheriv(DEFAULT_ALGORITHM, key, iv);
+
+    const firstEncryption = cipher.update(rawText, "utf8", "hex");
+    const secondEncryption = cipher.final("hex");
+    const finalEncryption = `${firstEncryption}${secondEncryption}`;
+    const hexedIV = Buffer.from(iv).toString("hex");
+
+    const result = `${finalEncryption}|${hexedIV}`;
+
+    return Buffer.from(result, "utf8").toString("base64url");
   }
 
-  static decrypt(encryptedText: string) {
-    const [encrypted, iv] = Buffer.from(`${encryptedText}`, "base64url")
-      .toString("utf8")
-      .split("|");
+  static decrypt(encryptedText: string, cryptoKey?: string) {
+    const key = cryptoKey ? crypto.scryptSync(cryptoKey, "salt", 32) : DEFAULT_KEY;
+    const encryptedTextBuffer = Buffer.from(`${encryptedText}`, "base64url");
+
+    const [encrypted, iv] = encryptedTextBuffer.toString("utf8").split("|");
 
     if (!iv) throw new Error("IV not found");
-    if (!encrypted) throw new Error("Encrypted email not found");
+    if (!encrypted) throw new Error("Encrypted text not found");
 
-    const decipher = crypto.createDecipheriv(
-      Encrypter.algorithm,
-      Encrypter.key,
-      Buffer.from(iv, "hex")
-    );
+    const ivBuffer = Buffer.from(iv, "hex");
+
+    const decipher = crypto.createDecipheriv(DEFAULT_ALGORITHM, key, ivBuffer);
     return decipher.update(encrypted, "hex", "utf8") + decipher.final("utf8");
   }
 }

@@ -40,5 +40,15 @@ export const userSighInSchema = z.object({
     .max(24, { message: "Максимум 24 символа" }),
 });
 
+export const sendPasswordResetSchema = z.object({
+  email: z
+    .string()
+    .describe("User email")
+    .trim()
+    .min(1, { message: "Поле не должно быть пустым" })
+    .email({ message: "Проверьте правильность email" }),
+});
+
 export type IUserCreateSchema = z.infer<typeof userCreateSchema>;
 export type IUserSighInSchema = z.infer<typeof userSighInSchema>;
+export type ISendPasswordResetSchema = z.infer<typeof sendPasswordResetSchema>;

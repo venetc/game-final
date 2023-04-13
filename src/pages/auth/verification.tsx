@@ -1,20 +1,12 @@
 import type { Role, User } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { clsx } from "clsx";
-import type {
-  NextPage,
-  GetServerSidePropsContext,
-  GetServerSideProps,
-  InferGetServerSidePropsType,
-} from "next";
+import type { NextPage, GetServerSidePropsContext, GetServerSideProps, InferGetServerSidePropsType } from "next";
 import Head from "next/head";
 import { prisma } from "src/server/db";
 import { Encrypter } from "src/utils/decryptor";
 
-type PaswordlessUser = Pick<
-  User,
-  "id" | "email" | "name" | "roleId" | "emailConfirmed" | "isApproved"
-> & {
+type PaswordlessUser = Pick<User, "id" | "email" | "name" | "roleId" | "emailConfirmed" | "isApproved"> & {
   createdAt: string;
   role: Role;
 };
@@ -31,9 +23,7 @@ type SSP =
       isError: boolean;
     } & { isError: false });
 
-export const getServerSideProps: GetServerSideProps<SSP> = async (
-  ctx: GetServerSidePropsContext
-) => {
+export const getServerSideProps: GetServerSideProps<SSP> = async (ctx: GetServerSidePropsContext) => {
   const { query } = ctx;
 
   const tokenString = Array.isArray(query.token) ? query.token[0] : query.token;
@@ -99,9 +89,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (
   };
 };
 
-const VerificationPage: NextPage<
-  InferGetServerSidePropsType<typeof getServerSideProps>
-> = (props) => {
+const VerificationPage: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (props) => {
   const { isError, errorMessage, user } = props;
   /* TODO: Добавить возможность указать имя, если все ок */
   return (
@@ -111,10 +99,7 @@ const VerificationPage: NextPage<
         <meta name="Подтверждение email" content="Подтверждение email" />
       </Head>
       <div
-        className={clsx(
-          "grid h-screen place-items-center",
-          "bg-gradient-to-br from-navy-100 to-navy-200 font-rubik"
-        )}
+        className={clsx("grid h-screen place-items-center", "bg-gradient-to-br from-navy-100 to-navy-200 font-rubik")}
       >
         {props && (
           <div className="m-auto flex h-full w-full max-w-sm flex-col justify-center rounded-none bg-navy-50 px-1 py-5 shadow-lg sm:h-auto sm:rounded-md sm:px-6 sm:py-7">
@@ -129,8 +114,7 @@ const VerificationPage: NextPage<
             ) : (
               <>
                 <p className="text-center font-fira font-normal leading-snug text-navy-700">
-                  Отлично! Осталось только дождаться подтверждения вашего
-                  аккаунта одним из&nbsp;администраторов.
+                  Отлично! Осталось только дождаться подтверждения вашего аккаунта одним из&nbsp;администраторов.
                 </p>
                 <div className="my-6 border border-navy-200 text-center font-fira font-normal leading-snug text-navy-700">
                   {user.name && (
@@ -149,14 +133,11 @@ const VerificationPage: NextPage<
                   </p>
                   <p className="flex justify-between py-1.5 px-3 text-sm odd:bg-navy-100">
                     <span>Дата регистрации</span>
-                    <span>
-                      {new Date(user.createdAt).toLocaleDateString("ru-RU")}
-                    </span>
+                    <span>{new Date(user.createdAt).toLocaleDateString("ru-RU")}</span>
                   </p>
                 </div>
                 <p className="text-center font-fira font-normal leading-snug text-navy-700">
-                  Максимальный срок рассмотрения заявок&nbsp;&mdash;{" "}
-                  <i className="text-navy-500">30&nbsp;дней</i>.
+                  Максимальный срок рассмотрения заявок&nbsp;&mdash; <i className="text-navy-500">30&nbsp;дней</i>.
                 </p>
               </>
             )}

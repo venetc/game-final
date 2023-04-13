@@ -9,18 +9,8 @@ import { useCallback, useState } from "react";
 import { Button } from "@client/shared/ui/button";
 import { Input } from "@client/shared/ui/input";
 import { TRPCClientError } from "@trpc/client";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@client/shared/ui/select";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@client/shared/ui/hover-card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@client/shared/ui/select";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@client/shared/ui/hover-card";
 import { type IUserCreateSchema, userCreateSchema } from "src/utils/validators";
 import { Eye, EyeOff, Info, Loader2 } from "lucide-react";
 import { prisma } from "src/server/db";
@@ -30,6 +20,7 @@ import { appRouter } from "src/server/api/root";
 import { createProxySSGHelpers } from "@trpc/react-query/ssg";
 import Link from "next/link";
 import { useZodForm } from "@client/shared/lib/utils";
+import { Encrypter } from "src/utils/decryptor";
 
 export const getStaticProps = async () => {
   const ssg = createProxySSGHelpers({
@@ -40,19 +31,29 @@ export const getStaticProps = async () => {
 
   const roles = await ssg.role.getAll.fetch();
 
+  const date = new Date();
+  const email = "zalupa@tigra.com";
+  const t = { date, email };
+  const o = Encrypter.encrypt(JSON.stringify(t), "hleb");
+  const p = Encrypter.encrypt("zalupa@tigra.com", "hleb");
+
+  console.log("------------------------");
+  console.log("Object encrypt: ", o);
+  console.log("Plain encrypt: ", p);
+  console.log("------------------------");
+  console.log("Object dencrypt: ", Encrypter.decrypt(o, "hleb"));
+  console.log("Plain dencrypt: ", Encrypter.decrypt(p, "hleb"));
+  console.log("------------------------");
+
   return {
     props: { trpcState: ssg.dehydrate(), roles },
   };
 };
 
-const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
-  roles,
-}) => {
-  const {
-    mutateAsync: createUser,
-    isLoading,
-    isSuccess,
-  } = api.user.create.useMutation();
+type PageProps = InferGetStaticPropsType<typeof getStaticProps>;
+
+const SignUp: NextPage<PageProps> = ({ roles }) => {
+  const { mutateAsync: createUser, isLoading, isSuccess } = api.user.create.useMutation();
 
   const {
     handleSubmit,
@@ -69,7 +70,11 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
     },
   });
 
-  const [apiError, setApiError] = useState<{ message: string } | null>(null);
+  type ApiError = {
+    message: string;
+  } | null;
+
+  const [apiError, setApiError] = useState<ApiError>(null);
 
   watchFormChange(() => setApiError(null));
 
@@ -88,8 +93,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
   );
 
   const [isPassVisisble, setIsPassVisibility] = useState(false);
-  const togglePassVisibility = () =>
-    setIsPassVisibility((prevState) => !prevState);
+  const togglePassVisibility = () => setIsPassVisibility((prevState) => !prevState);
 
   return (
     <>
@@ -98,29 +102,21 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
         <meta name="description" content="Sign Up" />
       </Head>
       <div
-        className={clsx(
-          "grid h-screen place-items-center",
-          "bg-gradient-to-br from-navy-100 to-navy-200 font-rubik"
-        )}
+        className={clsx("grid h-screen place-items-center", "bg-gradient-to-br from-navy-100 to-navy-200 font-rubik")}
       >
         {!isSuccess ? (
           <form
             className="relative m-auto flex h-full w-full max-w-xs flex-col justify-center gap-6 rounded-none bg-navy-50 px-3 py-4 shadow-lg sm:h-auto sm:rounded-md sm:px-6 sm:py-4"
             onSubmit={handleSubmit(onSubmit)}
           >
-            <h1 className="mb-2 mt-1 text-center font-nunito text-3xl font-semibold text-navy-900">
-              Регистрация
-            </h1>
+            <h1 className="mb-2 mt-1 text-center font-nunito text-3xl font-semibold text-navy-900">Регистрация</h1>
 
             <Controller
               name="name"
               control={control}
               render={({ field }) => (
                 <fieldset className="relative">
-                  <label
-                    htmlFor="name"
-                    className="mb-1.5 block text-xs font-medium text-navy-800"
-                  >
+                  <label htmlFor="name" className="mb-1.5 block text-xs font-medium text-navy-800">
                     Имя
                   </label>
                   <Input
@@ -135,11 +131,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
                         : "border-navy-600 focus:border-navy-400 focus-visible:ring-navy-400"
                     )}
                   />
-                  {errors.name && (
-                    <p className="absolute -bottom-5 text-xs text-red-500">
-                      {errors.name?.message}
-                    </p>
-                  )}
+                  {errors.name && <p className="absolute -bottom-5 text-xs text-red-500">{errors.name?.message}</p>}
                 </fieldset>
               )}
             />
@@ -149,10 +141,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
               control={control}
               render={({ field }) => (
                 <fieldset className="relative">
-                  <label
-                    htmlFor="email"
-                    className="mb-1.5 block text-xs font-medium text-navy-800"
-                  >
+                  <label htmlFor="email" className="mb-1.5 block text-xs font-medium text-navy-800">
                     Email *
                   </label>
                   <Input
@@ -167,11 +156,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
                         : "border-navy-600 focus:border-navy-400 focus-visible:ring-navy-400"
                     )}
                   />
-                  {errors.email && (
-                    <p className="absolute -bottom-5 text-xs text-red-500">
-                      {errors.email?.message}
-                    </p>
-                  )}
+                  {errors.email && <p className="absolute -bottom-5 text-xs text-red-500">{errors.email?.message}</p>}
                 </fieldset>
               )}
             />
@@ -181,10 +166,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
               control={control}
               render={({ field }) => (
                 <fieldset className="relative">
-                  <label
-                    htmlFor="password"
-                    className="mb-1.5 block text-xs font-medium text-navy-800"
-                  >
+                  <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-navy-800">
                     Пароль *
                   </label>
 
@@ -214,9 +196,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
                   </div>
 
                   {errors.password && (
-                    <p className="absolute -bottom-5 text-xs text-red-500">
-                      {errors.password?.message}
-                    </p>
+                    <p className="absolute -bottom-5 text-xs text-red-500">{errors.password?.message}</p>
                   )}
                 </fieldset>
               )}
@@ -227,10 +207,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
               control={control}
               render={({ field }) => (
                 <fieldset className="relative">
-                  <label
-                    htmlFor="email"
-                    className="mb-1.5 flex items-center text-xs font-medium text-navy-800"
-                  >
+                  <label htmlFor="email" className="mb-1.5 flex items-center text-xs font-medium text-navy-800">
                     Роль
                   </label>
                   <Select
@@ -241,10 +218,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
                   >
                     <SelectTrigger className="border-navy-600 text-navy-900 focus:border-navy-400 focus-visible:ring-navy-400">
                       <SelectValue asChild>
-                        <span>
-                          {roles &&
-                            roles.find((role) => role.id === field.value)?.name}
-                        </span>
+                        <span>{roles && roles.find((role) => role.id === field.value)?.name}</span>
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -257,33 +231,18 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
                           >
                             {role.name}
                             <HoverCard>
-                              <HoverCardTrigger
-                                className="absolute top-2 right-2"
-                                asChild
-                              >
+                              <HoverCardTrigger className="absolute top-2 right-2" asChild>
                                 <Info className="block h-4 w-auto cursor-pointer opacity-40" />
                               </HoverCardTrigger>
                               <HoverCardContent side="right">
                                 <div className="text-sm">
-                                  <span className="mb-2 block">
-                                    Доступные действия:
-                                  </span>
+                                  <span className="mb-2 block">Доступные действия:</span>
                                   <ul>
-                                    {role.permissions.map(
-                                      (permission, index, arr) => (
-                                        <li
-                                          key={permission.id}
-                                          className={
-                                            index !== arr.length - 1
-                                              ? "mb-0.5"
-                                              : ""
-                                          }
-                                        >
-                                          -{" "}
-                                          {permission.description?.toLowerCase()}
-                                        </li>
-                                      )
-                                    )}
+                                    {role.permissions.map((permission, index, arr) => (
+                                      <li key={permission.id} className={index !== arr.length - 1 ? "mb-0.5" : ""}>
+                                        - {permission.description?.toLowerCase()}
+                                      </li>
+                                    ))}
                                   </ul>
                                 </div>
                               </HoverCardContent>
@@ -292,11 +251,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
                         ))}
                     </SelectContent>
                   </Select>
-                  {errors.roleId && (
-                    <p className="absolute -bottom-5 text-xs text-red-500">
-                      {errors.roleId?.message}
-                    </p>
-                  )}
+                  {errors.roleId && <p className="absolute -bottom-5 text-xs text-red-500">{errors.roleId?.message}</p>}
                 </fieldset>
               )}
             />
@@ -318,8 +273,7 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
               <Separator className="mb-3" />
 
               <p className="text-center text-sm font-normal leading-snug text-navy-600">
-                Доступ к&nbsp;сервису будет предоставлен только после
-                подтверждения одним из&nbsp;администраторов
+                Доступ к&nbsp;сервису будет предоставлен только после подтверждения одним из&nbsp;администраторов
               </p>
             </div>
 
@@ -340,16 +294,13 @@ const SignUp: NextPage<InferGetStaticPropsType<typeof getStaticProps>> = ({
 const SuccessPanel = memo(() => {
   return (
     <div className="m-auto flex h-full w-full max-w-sm flex-col justify-center rounded-none bg-navy-50 px-1 py-5 shadow-lg sm:h-auto sm:rounded-md sm:px-6 sm:py-7">
-      <h1 className="mb-5 text-center font-nunito text-3xl font-semibold text-navy-900">
-        Аккаунт создан!
-      </h1>
+      <h1 className="mb-5 text-center font-nunito text-3xl font-semibold text-navy-900">Аккаунт создан!</h1>
       <p className="mb-3 text-center font-fira font-normal leading-snug text-navy-700">
-        Подтвердите email перейдя по&nbsp;ссылке из&nbsp;письма,
-        и&nbsp;дождитесь подтверждения аккаунта одним из&nbsp;администраторов.
+        Подтвердите email перейдя по&nbsp;ссылке из&nbsp;письма, и&nbsp;дождитесь подтверждения аккаунта одним
+        из&nbsp;администраторов.
       </p>
       <p className="text-center font-fira font-normal leading-snug text-navy-700">
-        Максимальный срок рассмотрения заявок&nbsp;&mdash;{" "}
-        <i className="text-navy-500">30&nbsp;дней</i>.
+        Максимальный срок рассмотрения заявок&nbsp;&mdash; <i className="text-navy-500">30&nbsp;дней</i>.
       </p>
     </div>
   );
@@ -357,9 +308,7 @@ const SuccessPanel = memo(() => {
 
 SuccessPanel.displayName = "SuccessPanel";
 
-const DynamicIcon: FC<{ isVisible: boolean } & SVGProps<SVGSVGElement>> = ({
-  isVisible,
-  ...rest
-}) => (isVisible ? <EyeOff {...rest} /> : <Eye {...rest} />);
+const DynamicIcon: FC<{ isVisible: boolean } & SVGProps<SVGSVGElement>> = ({ isVisible, ...rest }) =>
+  isVisible ? <EyeOff {...rest} /> : <Eye {...rest} />;
 
 export default SignUp;

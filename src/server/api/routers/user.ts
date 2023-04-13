@@ -1,9 +1,8 @@
-import { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { hash } from "argon2";
 import { sendAccountConfirm } from "src/email/sendAccountConfirm";
 import { Encrypter } from "src/utils/decryptor";
-import { userCreateSchema, userSighInSchema } from "src/utils/validators";
+import { userCreateSchema } from "src/utils/validators";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 
 export const userRouter = createTRPCRouter({
