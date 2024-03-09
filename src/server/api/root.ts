@@ -1,7 +1,7 @@
-import { createTRPCRouter } from "./trpc";
-import { userRouter } from "./routers/user";
-import { roleRouter } from "./routers/role";
 import { emailRouter } from "./routers/email";
+import { roleRouter } from "./routers/role";
+import { userRouter } from "./routers/user";
+import { createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,

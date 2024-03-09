@@ -1,34 +1,38 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "mysql"
-    url      = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-    id             Int      @id @unique @default(autoincrement())
-    name           String?  @unique
-    email          String   @unique
-    password       String
-    role           Role     @relation(fields: [roleId], references: [id])
-    roleId         Int
-    createdAt      DateTime @default(now())
-    emailConfirmed Boolean  @default(false)
-    isApproved     Boolean  @default(false)
+  id             Int      @id @unique @default(autoincrement())
+  name           String?  @unique
+  email          String   @unique
+  password       String
+  roleId         Int
+  createdAt      DateTime @default(now())
+  emailConfirmed Boolean  @default(false)
+  isApproved     Boolean  @default(false)
+  role           Role     @relation(fields: [roleId], references: [id])
+
+  @@index([roleId], map: "User_roleId_fkey")
 }
 
 model Role {
-    id          Int          @id @unique @default(autoincrement())
-    name        String       @unique
-    permissions Permission[]
-    users       User[]
-    description String?
+  id          Int     @id @unique @default(autoincrement())
+  name        String  @unique
+  description String?
+  users       User[]
+  permissions Json?
 }
 
-model Permission {
-    id          Int     @id @unique @default(autoincrement())
-    roles       Role[]
-    description String?
+model ResetPasswordRequest {
+  id        String   @id @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  email     String
+  expires   DateTime
 }

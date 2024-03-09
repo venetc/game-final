@@ -1,6 +1,7 @@
+import BaseTable from "./BaseTable";
+
 import type { ComponentProps, ReactNode } from "react";
 
-import BaseTable from "./BaseTable";
 
 const Row = ({
   children,

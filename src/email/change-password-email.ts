@@ -1,6 +1,7 @@
-import { renderEmail } from "./renderEmail";
+import { type Role, type User } from "@prisma/client";
+
 import BaseEmail from "./base-email";
-import { type User, type Role } from "@prisma/client";
+import { renderEmail } from "./renderEmail";
 
 type EmailUser = Pick<User, "email" | "name"> & { roleName: Role["name"] };
 
@@ -21,10 +22,7 @@ export default class ChangePasswordEmail extends BaseEmail {
 
   protected getNodeMailerPayload(): Record<string, unknown> {
     return {
-      to: `${
-        this.changePasswordPayload.user.name ??
-        this.changePasswordPayload.user.roleName
-      } <${this.changePasswordPayload.user.email}>`,
+      to: `${this.changePasswordPayload.user.name ?? this.changePasswordPayload.user.roleName} <${this.changePasswordPayload.user.email}>`,
       from: `${"Jeopardy!"} <${this.getMailerOptions().from}>`,
       subject: "Смена пароля",
       html: renderEmail("ChangePasswordEmail", this.changePasswordPayload),

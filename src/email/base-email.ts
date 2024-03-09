@@ -1,7 +1,8 @@
 import nodemailer from "nodemailer";
 
-import { getErrorFromUnknown } from "../utils/errorHanlder";
 import { serverConfig } from "./serverConfig";
+
+import { getErrorFromUnknown } from "../utils/errorHanlder";
 
 export default class BaseEmail {
   name = "";
@@ -19,17 +20,15 @@ export default class BaseEmail {
   }
   public sendEmail() {
     new Promise((resolve, reject) =>
-      nodemailer
-        .createTransport(this.getMailerOptions().transport)
-        .sendMail(this.getNodeMailerPayload(), (_err, info) => {
-          if (_err) {
-            const err = getErrorFromUnknown(_err);
-            this.printNodeMailerError(err);
-            reject(err);
-          } else {
-            resolve(info);
-          }
-        })
+      nodemailer.createTransport(this.getMailerOptions().transport).sendMail(this.getNodeMailerPayload(), (_err, info) => {
+        if (_err) {
+          const err = getErrorFromUnknown(_err);
+          this.printNodeMailerError(err);
+          reject(err);
+        } else {
+          resolve(info);
+        }
+      })
     ).catch((e) => console.error("sendEmail", e));
     return new Promise((resolve) => resolve("send mail async"));
   }

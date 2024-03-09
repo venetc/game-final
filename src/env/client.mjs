@@ -7,7 +7,7 @@ export const formatErrors = (
   errors,
 ) =>
   Object.entries(errors)
-    .map(([name, value]) => {
+    .map(([ name, value ]) => {
       if (value && "_errors" in value)
         return `${name}: ${value._errors.join(", ")}\n`;
     })

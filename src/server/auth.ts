@@ -1,40 +1,42 @@
-import type { GetServerSideProps, GetServerSidePropsContext } from "next";
-import {
-  getServerSession,
-  type NextAuthOptions,
-  type DefaultSession,
-} from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { prisma } from "./db";
-import Credentials from "next-auth/providers/credentials";
-import type { User as PrismaUser, Role } from "@prisma/client";
-import { userSighInSchema } from "src/utils/validators";
+
 import { verify } from "argon2";
+
+import { type DefaultSession, getServerSession, type NextAuthOptions } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 
 import { z } from "zod";
 
+import { prisma } from "src/server/db";
+import { userSighInSchema } from "src/utils/validators";
+
+import type { Role, User as PrismaUser } from "@prisma/client";
+import type { GetServerSideProps, GetServerSidePropsContext } from "next";
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: number;
-      role: Role;
-    } & DefaultSession["user"] &
-      Pick<PrismaUser, "createdAt" | "emailConfirmed" | "isApproved">;
+      role: Pick<Role, "id" | "name">;
+      email: string;
+      name?: string | null | undefined;
+    } & Pick<PrismaUser, "createdAt" | "emailConfirmed" | "isApproved">;
   }
 
   interface User {
     id: number;
-    role: Role;
+    role: Pick<Role, "id" | "name">;
     createdAt: Date;
     emailConfirmed: boolean;
     isApproved: boolean;
+    email: string;
+    name?: string | null | undefined;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     id: number;
-    role: Role;
+    role: Pick<Role, "id" | "name">;
     createdAt: Date;
     emailConfirmed: boolean;
     isApproved: boolean;
@@ -57,9 +59,7 @@ export const authOptions: NextAuthOptions = {
       },
       authorize: async (credentials) => {
         try {
-          const { email, password } = await userSighInSchema.parseAsync(
-            credentials
-          );
+          const { email, password } = await userSighInSchema.parseAsync(credentials);
 
           const result = await prisma.user.findFirst({
             where: { email },
@@ -74,11 +74,13 @@ export const authOptions: NextAuthOptions = {
 
           if (!isValidPassword) throw new Error("Неверный email или пароль!");
 
+          const { id, name } = result.role;
+
           return Promise.resolve({
             id: result.id,
             email: result.email,
             name: result.name,
-            role: result.role,
+            role: { id, name },
             createdAt: result.createdAt,
             isApproved: result.isApproved,
             emailConfirmed: result.emailConfirmed,
@@ -125,8 +127,10 @@ export const authOptions: NextAuthOptions = {
       const { token, user } = params;
       // console.log("jwt params", params);
       if (user) {
+        const { id, name } = user.role;
+
         token.id = typeof user.id === "number" ? user.id : Number(user.id);
-        token.role = user.role;
+        token.role = { id, name };
         token.email = user.email;
         token.createdAt = user.createdAt;
         token.emailConfirmed = user.emailConfirmed;
@@ -137,9 +141,10 @@ export const authOptions: NextAuthOptions = {
     },
     session: async (params) => {
       const { token, session } = params;
+      const { id, name } = token.role;
 
       session.user.id = token.id;
-      session.user.role = token.role;
+      session.user.role = { id, name };
       session.user.createdAt = token.createdAt;
       session.user.isApproved = token.isApproved;
       session.user.emailConfirmed = token.emailConfirmed;
@@ -153,25 +158,21 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-export const getServerAuthSession = (ctx: {
-  req: GetServerSidePropsContext["req"];
-  res: GetServerSidePropsContext["res"];
-}) => {
+export const getServerAuthSession = (ctx: { req: GetServerSidePropsContext["req"]; res: GetServerSidePropsContext["res"] }) => {
   return getServerSession(ctx.req, ctx.res, authOptions);
 };
 
-export const requireAuth =
-  (func: GetServerSideProps) => async (ctx: GetServerSidePropsContext) => {
-    const session = await getServerAuthSession(ctx);
+export const requireAuth = (func: GetServerSideProps) => async (ctx: GetServerSidePropsContext) => {
+  const session = await getServerAuthSession(ctx);
 
-    if (!session) {
-      return {
-        redirect: {
-          destination: "/auth/sign-in", // login path
-          permanent: false,
-        },
-      };
-    }
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/auth/sign-in", // login path
+        permanent: false,
+      },
+    };
+  }
 
-    return await func(ctx);
-  };
+  return await func(ctx);
+};

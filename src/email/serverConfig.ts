@@ -1,6 +1,7 @@
+import { env } from "src/env/server.mjs";
+
 import type SendmailTransport from "nodemailer/lib/sendmail-transport";
 import type SMTPConnection from "nodemailer/lib/smtp-connection";
-import { env } from "src/env/server.mjs";
 
 function detectTransport():
   | SendmailTransport.Options

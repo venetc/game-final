@@ -1,4 +1,5 @@
 import { BaseEmailHtml } from "../fragments/BaseEmailHtml";
+
 import type { ChangePasswordPayload } from "../change-password-email";
 
 export const ChangePasswordEmail = ({ link, user }: ChangePasswordPayload) => {

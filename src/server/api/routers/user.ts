@@ -1,11 +1,71 @@
+import { faker } from "@faker-js/faker/locale/ru";
 import { TRPCError } from "@trpc/server";
-import { hash } from "argon2";
-import { sendAccountConfirm } from "src/email/sendAccountConfirm";
-import { Encrypter } from "src/utils/decryptor";
-import { userCreateSchema } from "src/utils/validators";
-import { createTRPCRouter, publicProcedure } from "../trpc";
 
+import { hash, verify } from "argon2";
+
+import { z } from "zod";
+
+import { sendAccountConfirm } from "@server/email";
+import { Encrypter } from "@server/utils/decryptor";
+import { userCreateSchema, userPasswordChangeSchema } from "@server/utils/validators";
+import { createTRPCRouter, publicProcedure } from "src/server/api/trpc";
 export const userRouter = createTRPCRouter({
+  changePassword: publicProcedure
+    .input(userPasswordChangeSchema)
+    .meta({ description: "Change user password" })
+    .mutation(async ({ input, ctx }) => {
+      const { password, passwordConfirm, requestId } = input;
+
+      if (password.trim() !== passwordConfirm.trim()) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Пароли не совпадают",
+        });
+      }
+
+      const user = await ctx.prisma.$transaction(async (client) => {
+        const request = await client.resetPasswordRequest.findUnique({
+          where: { id: requestId },
+        });
+
+        if (!request) return;
+
+        const requestUser = await client.user.findUnique({
+          where: { email: request.email },
+        });
+
+        return requestUser;
+      });
+
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Пользователь с этим email не найден",
+        });
+      }
+
+      const isOldPasswordUsed = await verify(user.password, password, {
+        type: 1,
+      });
+
+      if (isOldPasswordUsed) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Новый пароль должен отличаться от старого",
+        });
+      }
+
+      const hashedPassword = await hash(password, { type: 1 });
+      await ctx.prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword },
+      });
+
+      return {
+        status: 201,
+        message: "Пароль успешно изменен!",
+      };
+    }),
   create: publicProcedure
     .input(userCreateSchema)
     .meta({ description: "Create user" })
@@ -13,26 +73,10 @@ export const userRouter = createTRPCRouter({
       const { email, password, roleId, name } = input;
 
       const existingUser = await ctx.prisma.user.findFirst({
-        where: { email },
+        where: { email: email.toLowerCase() },
       });
 
       if (existingUser) {
-        if (!existingUser.emailConfirmed) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "Аккаунт с этим email был зарегестрирован, но email не был подтвержден. Подтвердите email, перейдя по ссылке из письма, высланного на эту почту",
-          });
-        }
-
-        if (existingUser.emailConfirmed && !existingUser.isApproved) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message:
-              "Ваш email подтвержден, аккаунт станет доступен после проверки администратором",
-          });
-        }
-
         throw new TRPCError({
           code: "CONFLICT",
           message: "Пользователь с таким email уже существует",
@@ -58,7 +102,7 @@ export const userRouter = createTRPCRouter({
 
       if (!desiredRole) {
         throw new TRPCError({
-          code: "CONFLICT",
+          code: "NOT_FOUND",
           message: "Такой роли не существует",
         });
       }
@@ -69,18 +113,18 @@ export const userRouter = createTRPCRouter({
         data: {
           password: hashedPassword,
           roleId,
-          email,
+          email: email.toLowerCase(),
           ...(name && { name }),
         },
       });
 
-      const token = Encrypter.encrypt(user.email);
+      const token = Encrypter.encrypt(user.email.toLowerCase());
 
       await sendAccountConfirm({
         language: "ru",
         user: {
           name: user.name,
-          email: user.email,
+          email: user.email.toLowerCase(),
           roleName: desiredRole.name,
         },
         link: `http://localhost:3000/auth/verification?token=${token}`,
@@ -88,9 +132,44 @@ export const userRouter = createTRPCRouter({
 
       return {
         status: 201,
-        message:
-          "Аккаунт успешно создан! Подтвердите email, перейдя по ссылке из письма",
-        result: user.email,
+        message: "Аккаунт успешно создан! Подтвердите email, перейдя по ссылке из письма",
+        result: user.email.toLowerCase(),
       };
+    }),
+  seed: publicProcedure
+    .input(
+      z.object({
+        secret: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (input.secret !== "pituh") throw new TRPCError({ code: "BAD_REQUEST", message: "Иди нахуй с таким паролем" });
+
+      type SeededUser = Record<string, { name: string | undefined; email: string; password: string; roleId: number; emailConfirmed: boolean; isApproved: boolean }>;
+
+      const users = {} as SeededUser;
+
+      for (let index = 0; index < 50; index++) {
+        const name = faker.helpers.maybe(() => faker.name.fullName());
+        const email = faker.internet.email().toLowerCase();
+        const password = await hash("zalupa", { type: 1 });
+        const roleId = faker.datatype.number({ min: 1, max: 3 });
+        const emailConfirmed = !!faker.helpers.maybe(() => true);
+        const isApproved = emailConfirmed ? !!faker.helpers.maybe(() => true, { probability: 0.75 }) : false;
+
+        users[email] = { name, email, password, roleId, emailConfirmed, isApproved };
+      }
+      const result = Object.values(
+        Object.values(users).reduce(
+          (acc, obj) => ({ ...acc, [obj.name ?? obj.email]: obj }),
+          {} as SeededUser
+        )
+      );
+
+      const usersFromDB = await ctx.prisma.user.createMany({
+        data: result,
+      });
+
+      return { length: usersFromDB, users: result };
     }),
 });

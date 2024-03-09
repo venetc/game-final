@@ -1,7 +1,9 @@
-import type { NextPage } from "next";
-import { useSession } from "next-auth/react";
 import Head from "next/head";
+import { useSession } from "next-auth/react";
+
 import { requireAuth } from "../server/auth";
+
+import type { NextPage } from "next";
 
 export const getServerSideProps = requireAuth(async (ctx) => {
   return Promise.resolve({ props: { test: ctx.req.cookies } });

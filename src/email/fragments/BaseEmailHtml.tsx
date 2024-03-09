@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-head-element */
+
 import BaseTable from "./BaseTable";
 import EmailHead from "./EmailHead";
 import RawHtml from "./RawHtml";
@@ -13,13 +14,7 @@ const Html = (props: { children: ReactNode }) => (
   </>
 );
 
-export const BaseEmailHtml = (props: {
-  children: ReactNode;
-  callToAction?: ReactNode;
-  subject: string;
-  title?: string;
-  subtitle?: ReactNode;
-}) => {
+export const BaseEmailHtml = (props: { children: ReactNode; callToAction?: ReactNode; subject: string; title?: string; subtitle?: ReactNode }) => {
   return (
     <Html>
       <EmailHead title={props.subject} />
@@ -38,9 +33,7 @@ export const BaseEmailHtml = (props: {
                   textAlign: "center",
                 }}
               >
-                <RawHtml
-                  html={`<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr></tr></table><![endif]-->`}
-                />
+                <RawHtml html={`<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr></tr></table><![endif]-->`} />
               </td>
             </Row>
           </div>
@@ -94,11 +87,7 @@ export const BaseEmailHtml = (props: {
                       width: "100%",
                     }}
                   >
-                    <Row
-                      border="0"
-                      style={{ verticalAlign: "top" }}
-                      width="100%"
-                    >
+                    <Row border="0" style={{ verticalAlign: "top" }} width="100%">
                       <td
                         align="left"
                         style={{
@@ -167,11 +156,7 @@ export const BaseEmailHtml = (props: {
                         width: "100%",
                       }}
                     >
-                      <BaseTable
-                        border="0"
-                        style={{ verticalAlign: "top" }}
-                        width="100%"
-                      >
+                      <BaseTable border="0" style={{ verticalAlign: "top" }} width="100%">
                         <tbody>
                           <tr>
                             <td
@@ -223,9 +208,7 @@ export const BaseEmailHtml = (props: {
                   textAlign: "center",
                 }}
               >
-                <RawHtml
-                  html={`<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr></tr></table><![endif]-->`}
-                />
+                <RawHtml html={`<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr></tr></table><![endif]-->`} />
               </td>
             </Row>
           </div>

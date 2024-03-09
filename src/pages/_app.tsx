@@ -1,10 +1,14 @@
-import { type AppType } from "next/app";
+import "../styles/globals.css";
+
+import { Fira_Sans, Nunito, Rubik } from "next/font/google";
 import { type Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
-import { Nunito, Fira_Sans, Rubik } from "@next/font/google";
+
 import { api } from "../utils/api";
 
-import "../styles/globals.css";
+import type { NextPage } from "next";
+import type { AppProps } from "next/app";
+import type { ReactElement, ReactNode } from "react";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -25,17 +29,37 @@ const rubik = Rubik({
   subsets: ["cyrillic", "cyrillic-ext", "latin", "latin-ext"],
 });
 
-const MyApp: AppType<{ session: Session | null }> = ({
-  Component,
-  pageProps: { session, ...pageProps },
-}) => {
+export type LayoutGetter = (page: ReactElement) => ReactNode;
+
+export type NextPageWithLayout<TProps = Record<string, unknown>, TInitialProps = TProps> = NextPage<TProps, TInitialProps> & {
+  getLayout?: LayoutGetter;
+};
+
+type SessionProp = { session: Session | null };
+
+export type AppPropsWithLayout = AppProps<SessionProp> & {
+  Component: NextPageWithLayout;
+};
+
+const getFallbackLayout: LayoutGetter = (page) => page;
+
+const WrappedApp = ({ Component, pageProps: { session, ...pageProps } }: AppPropsWithLayout) => {
+  const getLayout = Component.getLayout ?? getFallbackLayout;
+
   return (
-    <SessionProvider session={session}>
-      <main className={`${nunito.variable} ${fira.variable} ${rubik.variable}`}>
-        <Component {...pageProps} />
-      </main>
-    </SessionProvider>
+    <>
+      <style jsx global>{`
+        :root {
+          --font-nunito: ${nunito.style.fontFamily};
+          --font-fira: ${fira.style.fontFamily};
+          --font-rubik: ${rubik.style.fontFamily};
+        }
+      `}</style>
+      <SessionProvider session={session}>
+        <div>{getLayout(<Component {...pageProps} />)}</div>
+      </SessionProvider>
+    </>
   );
 };
 
-export default api.withTRPC(MyApp);
+export default api.withTRPC(WrappedApp);

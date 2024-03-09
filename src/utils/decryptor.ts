@@ -1,37 +1,46 @@
-import * as crypto from "crypto";
+import { createCipheriv, createDecipheriv, type Encoding, randomBytes, scryptSync } from "node:crypto";
 
-const DEFAULT_KEY = crypto.scryptSync("her", "morzha", 32);
+const DEFAULT_KEY = scryptSync("her", "morzha", 32);
 const DEFAULT_ALGORITHM = "aes256";
+const DEFAULT_ENCODING: Encoding = "base64";
 
 export class Encrypter {
   static encrypt(rawText: string, cryptoKey?: string) {
-    const iv = crypto.randomBytes(16);
-    const key = cryptoKey ? crypto.scryptSync(cryptoKey, "salt", 32) : DEFAULT_KEY;
+    const key = cryptoKey ? scryptSync(cryptoKey.trim(), "salt", 32) : DEFAULT_KEY;
+    const iv = randomBytes(16);
 
-    const cipher = crypto.createCipheriv(DEFAULT_ALGORITHM, key, iv);
+    const cipher = createCipheriv(DEFAULT_ALGORITHM, key, iv);
 
-    const firstEncryption = cipher.update(rawText, "utf8", "hex");
-    const secondEncryption = cipher.final("hex");
+    const firstEncryption = cipher.update(rawText, "utf8", DEFAULT_ENCODING).trim();
+    const secondEncryption = cipher.final(DEFAULT_ENCODING).trim();
     const finalEncryption = `${firstEncryption}${secondEncryption}`;
-    const hexedIV = Buffer.from(iv).toString("hex");
+    const hexedIV = Buffer.from(iv).toString(DEFAULT_ENCODING);
 
-    const result = `${finalEncryption}|${hexedIV}`;
+    const mergedToken = `${finalEncryption}|${hexedIV}`;
+    const resultBuffer = Buffer.from(mergedToken, "utf8");
+    const result = resultBuffer.toString("base64url").trim();
 
-    return Buffer.from(result, "utf8").toString("base64url");
+    return result;
   }
 
   static decrypt(encryptedText: string, cryptoKey?: string) {
-    const key = cryptoKey ? crypto.scryptSync(cryptoKey, "salt", 32) : DEFAULT_KEY;
-    const encryptedTextBuffer = Buffer.from(`${encryptedText}`, "base64url");
+    const key = cryptoKey ? scryptSync(cryptoKey.trim(), "salt", 32) : DEFAULT_KEY;
 
-    const [encrypted, iv] = encryptedTextBuffer.toString("utf8").split("|");
+    const encryptedTextBuffer = Buffer.from(`${encryptedText.trim()}`, "base64url");
+    const tokenString = encryptedTextBuffer.toString("utf8").trim();
+    const splittedToken = tokenString.split("|");
 
-    if (!iv) throw new Error("IV not found");
-    if (!encrypted) throw new Error("Encrypted text not found");
+    const [ encrypted, hexedIV ] = splittedToken;
 
-    const ivBuffer = Buffer.from(iv, "hex");
+    if (!hexedIV || !encrypted) throw new Error("missing data");
 
-    const decipher = crypto.createDecipheriv(DEFAULT_ALGORITHM, key, ivBuffer);
-    return decipher.update(encrypted, "hex", "utf8") + decipher.final("utf8");
+    const iv = Buffer.from(hexedIV, DEFAULT_ENCODING);
+
+    const decipher = createDecipheriv(DEFAULT_ALGORITHM, key, iv);
+
+    const firstDecryption = decipher.update(encrypted, DEFAULT_ENCODING, "utf8").trim();
+    const secondDecryption = decipher.final("utf8").trim();
+
+    return `${firstDecryption}${secondDecryption}`;
   }
 }

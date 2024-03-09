@@ -1,4 +1,5 @@
 import { BaseEmailHtml } from "../fragments/BaseEmailHtml";
+
 import type { ConfirmAccountPayload } from "../confirm-account-email";
 
 export const AccountConfirmEmail = ({ link, user }: ConfirmAccountPayload) => {
