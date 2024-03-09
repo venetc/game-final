@@ -143,7 +143,7 @@ export const userRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      if (input.secret !== "pituh") throw new TRPCError({ code: "BAD_REQUEST", message: "Иди нахуй с таким паролем" });
+      if (input.secret !== "pituh") throw new TRPCError({ code: "BAD_REQUEST", message: "Иди на*уй с таким паролем" });
 
       type SeededUser = Record<string, { name: string | undefined; email: string; password: string; roleId: number; emailConfirmed: boolean; isApproved: boolean }>;
 
@@ -152,7 +152,7 @@ export const userRouter = createTRPCRouter({
       for (let index = 0; index < 50; index++) {
         const name = faker.helpers.maybe(() => faker.name.fullName());
         const email = faker.internet.email().toLowerCase();
-        const password = await hash("zalupa", { type: 1 });
+        const password = await hash("hehe", { type: 1 });
         const roleId = faker.datatype.number({ min: 1, max: 3 });
         const emailConfirmed = !!faker.helpers.maybe(() => true);
         const isApproved = emailConfirmed ? !!faker.helpers.maybe(() => true, { probability: 0.75 }) : false;
